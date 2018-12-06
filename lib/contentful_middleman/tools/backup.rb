@@ -28,8 +28,10 @@ module ContentfulMiddleman
 
         self.class.ensure_backup_path!
 
+        FileUtils.rm_rf(path) if ::File.exist?(path)
+
         FileUtils.mkdir(path)
-        FileUtils.mv(source, path)
+        FileUtils.cp_r(source, path)
       end
 
 
