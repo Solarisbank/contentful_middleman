@@ -4,9 +4,11 @@ require 'digest'
 require 'contentful_middleman/commands/context'
 require 'contentful_middleman/tools/backup'
 require 'contentful_middleman/version_hash'
+require 'contentful_middleman/sync_url'
 require 'contentful_middleman/import_task'
 require 'contentful_middleman/local_data/store'
 require 'contentful_middleman/local_data/file'
+require 'contentful_middleman/local_data/deleted_file'
 
 module Middleman
   module Cli
@@ -34,6 +36,7 @@ module Middleman
         raise Thor::Error.new "You need to activate the contentful extension in config.rb before you can import data from Contentful" if contentful_instances.empty?
 
         ContentfulMiddleman::VersionHash.source_root    = self.class.source_root
+        ContentfulMiddleman::SyncUrl.source_root        = self.class.source_root
         ContentfulMiddleman::LocalData::File.thor       = self
 
         hash_local_data_changed = contentful_instances.reduce(false) do |changes, instance|

@@ -61,6 +61,9 @@ module ContentfulMiddleman
     option :destination, 'data',
       "String with path within your base path under which to store the output yaml files."
 
+    option :use_sync, false,
+      "Use sync instead of brute force."
+
     helpers ContentfulMiddleman::Helpers
     include ContentfulMiddleman::Helpers
 
