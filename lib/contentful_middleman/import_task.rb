@@ -74,10 +74,12 @@ module ContentfulMiddleman
             content_type_mapper_class = @content_type_mappers.fetch(entry.sys[content_type_key].id, nil)
             next unless content_type_mapper_class
 
-            entries << LocalData::DeletedFile.new(entry.id)
+            content_type_name = @content_type_names.fetch(entry.sys[content_type_key].id).to_s
+            mapped_entry = LocalData::DeletedFile.new(nil, file_name(content_type_name, entry)
           elsif entry.is_a? Contentful::Entry
-            entries << map_single_entry(entry, content_type_key)
+            mapped_entry = map_single_entry(entry, content_type_key)
           end
+          entries << mapped_entry
         end
       end
       entries.compact
