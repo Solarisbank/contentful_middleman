@@ -3,8 +3,6 @@ require 'yaml'
 module ContentfulMiddleman
   module LocalData
     class Repository
-      class InconsistentDataError; end
-
       class << self
         attr_accessor :base_path
 
@@ -13,48 +11,60 @@ module ContentfulMiddleman
         end
 
         def path(space)
-          ::File.join(base_path, "#{space}-repository.yml")
+          ::File.join(base_path, "#{space}-repository.yaml")
         end
       end
 
-      def initialize(space, mode = :sync)
+      def initialize(space)
         @space  = space
-        @mode   = mode
-        @index  = {}
+        @data  = {}
       end
 
-      attr_accessor :last_sync_hash
+      attr_reader :updated_at
 
       def load
-        yaml = ::YAML.load(File.read(path))
-        fail InconsistentDataError,
-          "The modes of stored and current data don't align." if yaml[:mode] != @mode
-        fail InconsistentDataError,
-          "Last sync URL does not match stored data." if yaml[:last_sync_hash] != @last_sync_hash
+        yaml = ::YAML.load(::File.read(path))
         @updated_at     = yaml[:updated_at]
-        @index          = yaml[:index]
-        @last_sync_hash = yaml[:last_sync_hash]
+        @data          = yaml[:data]
+        @last_sync_url  = yaml[:next_sync_url]
+      end
+
+      def changed?
+        @last_sync_url != @next_sync_url
+      end
+
+      def next_sync_url
+        @next_sync_url || @last_sync_url
+      end
+
+      def next_sync_url=(url)
+        @next_sync_url = url
+        @updated_at = Time.now.iso8601
       end
 
       def store(key, data)
-        @index[key] = data
+        @data[key] = data
       end
 
       def drop(key)
-        @index.delete(key)
+        @data.delete(key)
       end
 
-      def to_yml
+      def to_yaml
         {
-          updated_at: @updated_at,
-          mode: @mode,
-          last_sync_hash: @last_sync_hash,
-          index: @index.compact,
-        }
+          updated_at:     @updated_at,
+          mode:           @mode,
+          next_sync_url:  @next_sync_url,
+          data:          @data.compact,
+        }.to_yaml
+      end
+
+      def write!
+        ::File.open(path, 'w') { |file| file.write(self.to_yaml) }
       end
 
       def write
-        ::File.open(path, 'w') { |file| file.write(self.to_yml) }
+        changed? && write!
       end
 
       def path
