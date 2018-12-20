@@ -4,11 +4,12 @@ require 'digest'
 require 'contentful_middleman/commands/context'
 require 'contentful_middleman/tools/backup'
 require 'contentful_middleman/version_hash'
-require 'contentful_middleman/sync_url'
 require 'contentful_middleman/import_task'
 require 'contentful_middleman/local_data/store'
 require 'contentful_middleman/local_data/file'
-require 'contentful_middleman/local_data/deleted_file'
+require 'contentful_middleman/sync_adapter'
+require 'contentful_middleman/sync_import_task'
+require 'contentful_middleman/local_data/repository'
 
 module Middleman
   module Cli
@@ -36,7 +37,6 @@ module Middleman
         raise Thor::Error.new "You need to activate the contentful extension in config.rb before you can import data from Contentful" if contentful_instances.empty?
 
         ContentfulMiddleman::VersionHash.source_root    = self.class.source_root
-        ContentfulMiddleman::SyncUrl.source_root        = self.class.source_root
         ContentfulMiddleman::LocalData::File.thor       = self
 
         hash_local_data_changed = contentful_instances.reduce(false) do |changes, instance|
@@ -44,6 +44,8 @@ module Middleman
             instance.options.base_path,
             instance.options.destination
           )
+          ContentfulMiddleman::LocalData::Repository.base_path = ContentfulMiddleman::LocalData::Store.base_path
+
           import_task = create_import_task(instance)
           import_task.run
 
@@ -74,7 +76,11 @@ module Middleman
         content_type_names   = instance.content_types_ids_to_names
         content_type_mappers = instance.content_types_ids_to_mappers
 
-        ContentfulMiddleman::ImportTask.new(space_name, content_type_names, content_type_mappers, instance)
+        if instance.options.use_sync
+          ContentfulMiddleman::SyncImportTask.new(space_name, content_type_names, content_type_mappers, instance)
+        else
+          ContentfulMiddleman::ImportTask.new(space_name, content_type_names, content_type_mappers, instance)
+        end
       end
 
       Base.register(self, 'contentful', 'contentful [--rebuild]', 'Import Contentful data to your Data folder')
