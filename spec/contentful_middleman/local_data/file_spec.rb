@@ -26,7 +26,7 @@ describe ContentfulMiddleman::LocalData::File do
     end
 
     it '#write' do
-      expect(thor).to receive(:create_file).with(::File.join('foo', 'bar.yaml'), nil, {})
+      expect(thor).to receive(:create_file).with(::File.join('foo', 'bar.yaml'), nil, {force: true})
 
       subject.write
     end
