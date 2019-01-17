@@ -53,7 +53,6 @@ module ContentfulMiddleman
       def to_yaml
         {
           updated_at:     @updated_at,
-          mode:           @mode,
           next_sync_url:  next_sync_url,
           data:           @data.compact,
         }.to_yaml
