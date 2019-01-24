@@ -9,8 +9,7 @@ module ContentfulMiddleman
     end
 
     def repository
-      @repository ||= LocalData::Repository.new(@space_name)
-      LocalData::Repository.exists_for?(@space_name) && @repository.load
+      @repository ||= LocalData::Repository.new(@space_name, @contentful.options.content_types)
       @repository
     end
 

@@ -17,10 +17,11 @@ module ContentfulMiddleman
           content_type: content_type,
           updated_at:   data.get(:_meta).get(:updated_at),
         }
-        @data     = data.to_yaml
         @path     = path
         @adapter  = adapter
         @remove   = remove
+        data.get(:_meta).set(:content_type_id, content_type)
+        @data     = data.to_yaml
       end
 
       def sync_data

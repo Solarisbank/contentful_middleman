@@ -15,9 +15,12 @@ module ContentfulMiddleman
         end
       end
 
-      def initialize(space)
-        @space  = space
-        @data  = {}
+      DATA_FILE_MATCH = /^(.*?)[\w-]+\.(ya?ml)$/.freeze
+
+      def initialize(space, content_types = [])
+        @space          = space
+        @data           = {}
+        @content_types  = content_types
         load if self.class.exists_for?(space)
       end
 
@@ -48,7 +51,10 @@ module ContentfulMiddleman
       end
 
       def content_type_for(key)
-        @data.fetch(key, {}).fetch(:content_type)
+        content_type = @data[key]
+        puts "could not find content type for #{key}" if not content_type
+
+        content_type[:content_type]
       end
 
       def read(key, locale = nil)
@@ -56,12 +62,12 @@ module ContentfulMiddleman
         if ::File.exist?(filename)
           ::File.read(filename)
         else
-          nil
+          ''
         end
       end
 
       def entry(key, locale = nil)
-        ::YAML.load(read(key, locale))
+        Entry.new(key, self, locale)
       end
 
       def drop(key)
@@ -88,6 +94,77 @@ module ContentfulMiddleman
       def path
         self.class.path(@space)
       end
-     end
+
+      def method_missing(symbol, *args, &block)
+        if @content_types.include?(symbol)
+          content_path = ::File.join(self.class.base_path, @space.to_s, symbol.to_s)
+          entries = ::Dir.entries(content_path).select do |f|
+            ::File.file?(::File.join(content_path, f)) && f =~ DATA_FILE_MATCH
+          end
+          entries = entries.reduce({}) do |hsh, file|
+            yaml = ::YAML.load(::File.read(::File.join(content_path, file)))
+            hsh[yaml[:id]] = Entry.new(yaml[:id], self, nil, yaml)
+            hsh
+          end
+          entries
+        else
+          super
+        end
+      end
+
+      def respond_to?(symbol)
+        @content_types.include?(symbol)
+      end
+    end
+
+    class Entry
+      attr_reader :id
+      def initialize(id, repository, locale = nil, raw = nil)
+      puts [id, repository, locale, raw].inspect
+        @id           = id
+        @repository   = repository
+        @locale       = locale
+        @raw          = raw if raw
+      end
+
+      def content_type
+        @content_type ||= @repository.content_type_for(@id)
+      end
+
+      def raw
+        if @repository
+          @raw ||= ::YAML.load(@repository.read(@id, @locale))
+        end
+        @raw || {}
+      end
+
+      def fields
+        @fields ||= raw.reject { |i, _| [:id, :_meta].include?(i) }.reduce({}) do |hsh, (k, v)|
+          if v.is_a?(Array) && v.any? { |i| i.keys.include?(:id)}
+            hsh[k] = v.map { |i| self.class.new(i[:id], @repository, @locale)}
+          else
+            hsh[k] = v
+          end
+          hsh
+        end
+        @fields
+      end
+
+      def meta
+        raw[:_meta]
+      end
+
+      def method_missing(symbol, *args, &block)
+        if raw.keys.include?(symbol)
+          fields[symbol]
+        else
+          super
+        end
+      end
+
+      def respond_to?(symbol, include_all = false)
+        raw.reject { |i, _| [:id, :_meta].include?(i) }.include?(symbol)
+      end
+    end
   end
 end
