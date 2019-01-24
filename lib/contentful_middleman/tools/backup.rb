@@ -22,14 +22,20 @@ module ContentfulMiddleman
       end
 
 
-      def initialize(name, source)
+      def initialize(name, source, move = false)
         @name   = name
         @source = source
 
         self.class.ensure_backup_path!
 
+        FileUtils.rm_rf(path) if ::File.exist?(path)
+
         FileUtils.mkdir(path)
-        FileUtils.mv(source, path)
+        if move
+          FileUtils.mv(source, path)
+        else
+          FileUtils.cp_r(source, path)
+        end
       end
 
 

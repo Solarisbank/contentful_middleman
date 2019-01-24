@@ -17,7 +17,8 @@ module ContentfulMiddleman
       end
 
       def write
-        self.class.thor.create_file(local_data_file_path, nil, {}) { @data }
+        # TODO: maybe check if interactive or not?
+        self.class.thor.create_file(local_data_file_path, nil, {force: true}) { @data }
       end
 
       def local_data_file_path

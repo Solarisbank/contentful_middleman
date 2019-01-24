@@ -24,6 +24,7 @@ describe ContentfulMiddleman::Core do
       expect(options.default_locale).to eq('en-US')
       expect(options.base_path).to eq Dir.pwd
       expect(options.destination).to eq 'data'
+      expect(options.use_sync).to eq(false)
     end
   end
 

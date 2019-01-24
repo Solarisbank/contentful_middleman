@@ -6,6 +6,7 @@ require_relative 'mappers/base'
 require_relative 'helpers'
 require_relative 'instance'
 require_relative 'webhook_handler'
+require_relative 'local_data/repository_extension'
 
 # The Contentful Middleman extensions allows to load managed content into Middleman projects through the Contentful Content Management Platform.
 module ContentfulMiddleman
@@ -61,6 +62,9 @@ module ContentfulMiddleman
     option :destination, 'data',
       "String with path within your base path under which to store the output yaml files."
 
+    option :use_sync, false,
+      "Use synchronization of entities instead of brute force."
+
     helpers ContentfulMiddleman::Helpers
     include ContentfulMiddleman::Helpers
 
@@ -88,6 +92,17 @@ module ContentfulMiddleman
     #
     def after_configuration
       massage_options
+
+      if options.use_sync
+        ContentfulMiddleman::LocalData::Repository.base_path = File.join(
+          options.base_path,
+          options.destination
+        )
+        space = options.space[:name]
+        repo = ::ContentfulMiddleman::LocalData::Repository.new(space, options.content_types.keys.map(&:to_sym))
+
+        ::ContentfulMiddleman::LocalData::RepositoryExtension.add_repository(space, repo)
+      end
 
       ContentfulMiddleman.instances << (ContentfulMiddleman::Instance.new self)
     end
