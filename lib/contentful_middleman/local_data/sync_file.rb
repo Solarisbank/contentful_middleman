@@ -11,10 +11,10 @@ module ContentfulMiddleman
         end
       end
 
-      def initialize(data, path, adapter, remove: false)
+      def initialize(data, content_type, path, adapter, remove: false)
         @id       = data.get(:id)
         @meta     = {
-          content_type: data.get(:_meta).get(:content_type_id),
+          content_type: content_type,
           updated_at:   data.get(:_meta).get(:updated_at),
         }
         @data     = data.to_yaml

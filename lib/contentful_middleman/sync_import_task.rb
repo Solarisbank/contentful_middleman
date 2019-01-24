@@ -42,9 +42,9 @@ module ContentfulMiddleman
         content_type_mapper.map(context, entry)
 
         if entry.is_a? Contentful::DeletedEntry
-          entries << LocalData::SyncFile.new(context, file_name(content_type_name, entry), @sync_adapter, remove: true)
+          entries << LocalData::SyncFile.new(context, content_type_name, file_name(content_type_name, entry), @sync_adapter, remove: true)
         elsif entry.is_a? Contentful::Entry
-          entries << LocalData::SyncFile.new(context, file_name(content_type_name, entry), @sync_adapter)
+          entries << LocalData::SyncFile.new(context, content_type_name, file_name(content_type_name, entry), @sync_adapter)
         end
       end
       entries

@@ -18,6 +18,7 @@ module ContentfulMiddleman
       def initialize(space)
         @space  = space
         @data  = {}
+        load if self.class.exists_for?(space)
       end
 
       attr_reader :updated_at
@@ -44,6 +45,23 @@ module ContentfulMiddleman
 
       def store(key, data)
         @data[key] = data
+      end
+
+      def content_type_for(key)
+        @data.fetch(key, {}).fetch(:content_type)
+      end
+
+      def read(key, locale = nil)
+        filename = ::File.join(self.class.base_path, @space.to_s, content_type_for(key).to_s, "#{key}.yaml")
+        if ::File.exist?(filename)
+          ::File.read(filename)
+        else
+          nil
+        end
+      end
+
+      def entry(key, locale = nil)
+        ::YAML.load(read(key, locale))
       end
 
       def drop(key)
