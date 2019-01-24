@@ -51,16 +51,23 @@ module ContentfulMiddleman
       end
 
       def content_type_for(key)
-        content_type = @data[key]
-        puts "could not find content type for #{key}" if not content_type
-
-        content_type[:content_type]
+        entry = @data[key]
+        if not entry
+          warn "could not find content type for #{key}"
+          nil
+        else
+          entry.fetch(:content_type)
+        end
       end
 
       def read(key, locale = nil)
-        filename = ::File.join(self.class.base_path, @space.to_s, content_type_for(key).to_s, "#{key}.yaml")
-        if ::File.exist?(filename)
-          ::File.read(filename)
+        if content_type = content_type_for(key)
+          filename = ::File.join(self.class.base_path, @space.to_s, content_type.to_s, "#{key}.yaml")
+          if ::File.exist?(filename)
+            ::File.read(filename)
+          else
+            ''
+          end
         else
           ''
         end
@@ -140,8 +147,8 @@ module ContentfulMiddleman
 
       def fields
         @fields ||= raw.reject { |i, _| [:id, :_meta].include?(i) }.reduce({}) do |hsh, (k, v)|
-          if v.is_a?(Array) && v.any? { |i| i.keys.include?(:id)}
-            hsh[k] = v.map { |i| self.class.new(i[:id], @repository, @locale)}
+          if v.is_a?(Array) && v.any? { |i| i.is_a?(Hash) && i.keys.include?(:id)}
+            hsh[k] = v.map { |i| @repository.content_type_for(i[:id]) ? self.class.new(i[:id], @repository, @locale) : nil}.compact
           else
             hsh[k] = v
           end
@@ -151,7 +158,7 @@ module ContentfulMiddleman
       end
 
       def meta
-        raw[:_meta]
+        ::Middleman::Util::EnhancedHash.new(raw[:_meta])
       end
 
       def method_missing(symbol, *args, &block)
