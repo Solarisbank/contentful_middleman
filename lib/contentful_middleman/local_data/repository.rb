@@ -60,6 +60,10 @@ module ContentfulMiddleman
         end
       end
 
+      def key?(key)
+        @data.has_key?(key)
+      end
+
       def read(key, locale = nil)
         if content_type = content_type_for(key)
           filename = ::File.join(self.class.base_path, @space.to_s, content_type.to_s, "#{key}.yaml")
@@ -119,15 +123,14 @@ module ContentfulMiddleman
         end
       end
 
-      def respond_to?(symbol)
-        @content_types.include?(symbol)
+      def respond_to?(symbol, include_all = false)
+        @content_types.include?(symbol) || super
       end
     end
 
     class Entry
       attr_reader :id
       def initialize(id, repository, locale = nil, raw = nil)
-      puts [id, repository, locale, raw].inspect
         @id           = id
         @repository   = repository
         @locale       = locale

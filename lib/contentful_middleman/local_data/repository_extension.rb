@@ -12,15 +12,37 @@ module ContentfulMiddleman
           @repository[symbol] = repo
         end
       end
-      expose_to_config    repository: :repository
-      expose_to_template  repository: :repository
+
+      expose_to_application repository: :handler
+      expose_to_config      repository: :handler
+      expose_to_template    repository: :handler
 
       def initialize(app, options_hash=::Middleman::EMPTY_HASH, &block)
         super
       end
 
+      def handler
+        self
+      end
+
       def repository
         ::Middleman::Util::EnhancedHash.new(self.class.repository)
+      end
+
+      def find(key)
+        !(f = repository.values.find { |repo| repo.key?(key) }).nil? && f.entry(key)
+      end
+
+      def method_missing(symbol, *args, &block)
+        if repository.keys.include?(symbol.to_s)
+          repository[symbol]
+        else
+          super
+        end
+      end
+
+      def respond_to?(symbol, include_all = false)
+        repository.keys.include?(symbol) || super
       end
     end
   end
