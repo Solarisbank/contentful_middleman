@@ -28,9 +28,11 @@ module ContentfulMiddleman
 
       def load
         yaml = ::YAML.load(::File.read(path))
-        @updated_at     = yaml[:updated_at]
-        @data           = yaml[:data]
         @last_sync_url  = yaml[:next_sync_url]
+        if changed?
+          @updated_at     = yaml[:updated_at]
+          @data           = yaml[:data]
+        end
       end
 
       def changed?
@@ -95,7 +97,6 @@ module ContentfulMiddleman
 
       def write!
         ::File.open(path, 'w') { |file| file.write(self.to_yaml) }
-        @last_sync_url = @next_sync_url
       end
 
       def write
