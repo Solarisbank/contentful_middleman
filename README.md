@@ -67,6 +67,7 @@ webhook_controller       | Class for handling Webhook response, defaults to `::C
 rich_text_mappings       | Hash with `'nodeType' => RendererClass` pairs determining overrides for the [`RichTextRenderer` library](https://github.com/contentful/rich-text-renderer.rb) configuration.
 base_path                | String with path to your Middleman Application, defaults to current directory. Path is relative to your current location.
 destination              | String with path within your base path under which to store the output yaml files. Defaults to `data`.
+use_sync                 | If true, the gem will try to use the contentful sync feature for all given `content_types`.
 
 You can activate the extension multiple times to import entries from different spaces.
 
@@ -243,6 +244,94 @@ end
 
 The above configuration is the same as the previous one only that this time we are setting a custom mapper
 for the entries belonging to the `partner` content type.
+
+
+## Using Sync
+
+```ruby
+
+activate :contentful do |f|
+  f.space           = {parters: 'space-id'}
+  f.access_token    = 'some_access_token'
+  f.use_sync        = true
+  # this is necessary for sync, otherwise it would store entries in a fashion
+  # that each entry has their first 10 child nesting stored with them
+  #f.client_options  = {max_include_resolution_depth: 0, default_locale: 'en'}
+  f.content_types   = {
+    local_content_type_name: 'cfContentTypeName',
+    another_content_type: 'anotherContentfulType',
+    # ...
+  }
+end
+```
+
+Using the sync feature changes the folder structure in the `data/` directory
+so that within each folder for the content types, all entries matching this on
+the server side get stored, one entry per file.
+
+It would look roughly like this:
+
+- `data/`
+  - `partners/`
+    - `local_content_type_name/`
+      - `some_random_id.yaml`
+      - `another_id.yaml`
+      - ...
+    - `another_content_type/`
+      - `related_entry_id.yaml`
+      - ...
+
+In order to also have a fast lookup, the file `partners-repository.yaml` is
+also saved in the `data/` directory, keeping track of all cached entries, their
+respective content types, and meta information regarding the sync.
+For a fresh start, simply delete the repository file and the folder named like
+the space, in this example case `partners/`.
+
+Sometimes, it is also necessary to look up single entries by their entry ID.
+This is also supported in templates, config and in the entire application scope
+through the `repository` keyword.
+Because middleman_contenful supports using multiple spaces at once, each space
+can be accessed through dot-notation, resulting in `repository.partners`.
+From there on out, one can do the following:
+
+```ruby
+# accessing all entries for a content type:
+repository.partners.local_content_type_name.each do |entry|
+  puts entry.meta.id
+  puts entry.meta.content_type
+  puts entry.some_field_name
+end
+
+# querying a single entry with its id:
+repository.partners.entry('some_random_id') # => yields the local_content_type_name.some_random_id item
+```
+
+If an entry has sub-entries in this case, these are populated on access, such that
+one can traverse the entry hierarchy just like usual.
+Contentful habitually also delivers links to entries that are not published yet,
+even on the production api endpoint.
+This leads to interesting behavior when accessing an entry that has not-published
+children, since the production api will not make those drafted articles accessible
+on sync.
+As a result, while building the static site, this can result in messages indicating
+that a certain entry was not found. This is expected behavior and a reliable indicator
+that these entries are not published yet.
+
+
+### Syncing
+
+As with the regular fetching mechanics, calling `middleman contentful` will
+either start a new sync if a) the stored token for the next sync is invalid
+or b) no repository with the name of the space is found. It will then perform an
+initial sync, which can take some time if a lot of entries are in the namespace.
+Any further invocation will then only perform updates yielded by the contentful
+server's diffing mechanism.
+To not bloat the update logic unnecessarily, updates to new entries will simply
+override the whole file of that entry.
+
+Also note that assets currently are not supported to be synced to the local
+environment, since it is expected to have them referenced to the external
+contentful content delivery network.
 
 
 ## Using imported entries in templates
